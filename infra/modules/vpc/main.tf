@@ -23,11 +23,11 @@ resource "aws_subnet" "public_subnet" {
 }
 
 resource "aws_subnet" "private_subnet" {
-  count = "${length(var.public_subnet_cidrs)}"
+  count = "${length(var.private_subnet_cidrs)}"
   vpc_id = "${aws_vpc.vpc.id}"
-  cidr_block = "${element(var.public_subnet_cidrs, count.index)}"
+  cidr_block = "${element(var.private_subnet_cidrs, count.index)}"
   availability_zone = "${element(var.azs, count.index)}"
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false
 
   tags = {
     Name = "${var.vpc_name}-private-${count.index + 1}"
@@ -58,7 +58,16 @@ resource "aws_route_table_association" "public_route_table_association" {
   route_table_id = "${aws_route_table.public_route_table.id}"
 }
 
+resource "aws_eip" "nat_eip" {
+  domain = "vpc"
+  
+  tags = {
+    Name = "${var.vpc_name}-nat-eip"
+  }
+}
+
 resource "aws_nat_gateway" "nat_gateway" {
+  allocation_id = aws_eip.nat_eip.id
   subnet_id = "${aws_subnet.public_subnet[0].id}"
 
   tags = {
