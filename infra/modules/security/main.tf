@@ -83,6 +83,13 @@ resource "aws_security_group" "app_sg" {
   }
 
   ingress {
+    from_port = 8080
+    to_port = 8080
+    protocol = "tcp"
+    security_groups = ["${aws_security_group.web_sg.id}"]
+  }
+
+  ingress {
     from_port = 443
     to_port = 443
     protocol = "tcp"

@@ -35,17 +35,14 @@ module "web" {
   instance_type      = var.instance_type
   subnet_id          = module.vpc.public_subnet_ids[0]
   security_group_ids = [module.security.web_sg_id]
+  key_name           = module.security.key_name
   tags = {
     Name = "${module.vpc.vpc_name}-web"
   }
 
-  user_data = <<-EOF
-        #!/bin/bash
-        apt-get update
-        apt-get install -y apache2
-        systemctl enable apache2
-        systemctl start apache2
-        EOF
+  user_data = templatefile("${path.module}/../three_tier_architecture/web_tier/user_data.sh", {
+    app_tier_ip = module.app.instance_private_ip
+  })
 }
 
 module "app" {
@@ -56,16 +53,14 @@ module "app" {
   instance_type      = var.instance_type
   subnet_id          = module.vpc.private_subnet_ids[0]
   security_group_ids = [module.security.app_sg_id]
+  key_name           = module.security.key_name
   tags = {
     Name = "${module.vpc.vpc_name}-app"
   }
 
-  user_data = <<-EOF
-        #!/bin/bash
-        apt-get update
-        apt-get install -y php libapache2-mod-php
-        systemctl restart apache2
-        EOF
+  user_data = templatefile("${path.module}/../three_tier_architecture/app_tier/user_data.sh", {
+    db_tier_ip = module.db.instance_private_ip
+  })
 }
 
 module "db" {
@@ -76,9 +71,14 @@ module "db" {
   instance_type      = var.instance_type
   subnet_id          = module.vpc.private_subnet_ids[1]
   security_group_ids = [module.security.db_sg_id]
+  key_name           = module.security.key_name
   tags = {
     Name = "${module.vpc.vpc_name}-db"
   }
+
+  user_data = templatefile("${path.module}/../three_tier_architecture/db_tier/user_data.sh", {
+    app_tier_subnet = "10.0.20.0/24"
+  })
 }
 
 module "alb" {
